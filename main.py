@@ -3,6 +3,17 @@ Study Buddy - AstrBot Plugin
 
 学习陪伴助手插件：提供番茄钟计时与学习统计功能，并附带 WebUI 仪表盘。
 
+版权所有 (C) 2026 cremiracle
+
+本程序是自由软件：你可以根据自由软件基金会发布的 GNU Affero 通用公共许可证
+的条款重新分发和/或修改它，可以是该许可证的第3版，或者（按你的选择）任何更高版本。
+
+本程序的发布是希望它能有用，但不提供任何保证；甚至不包含对适销性或特定用途适用性的
+暗示保证。有关更多详细信息，请参阅 GNU Affero 通用公共许可证。
+
+你应该已经收到了 GNU Affero 通用公共许可证的副本，以及本程序。
+如果没有，请参见 <https://www.gnu.org/licenses/>。
+
 插件架构：
 ├── main.py              # 插件入口，负责注册、API 路由、LLM 工具和指令处理
 └── components/
@@ -54,7 +65,7 @@ PLUGIN_NAME = "astrbot_plugin_study_buddy"
 # 插件主类
 # ------------------------------
 
-@register(PLUGIN_NAME, "YourName", "学习陪伴助手 - 番茄钟与统计", "1.3.0")
+@register(PLUGIN_NAME, "cremiracle", "学习陪伴助手 - 番茄钟与统计", "1.3.0")
 class StudyBuddyPlugin(Star):
     """
     学习陪伴助手插件主类

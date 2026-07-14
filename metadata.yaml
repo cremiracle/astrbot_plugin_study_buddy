@@ -2,8 +2,8 @@ name: astrbot_plugin_study_buddy
 display_name: 学习陪伴助手
 desc: 番茄钟学习陪伴插件，支持正计时与多轮循环倒计时，提供学习统计 WebUI。
 version: v1.3.0
-author: YourName
-repo: https://github.com/YourName/astrbot_plugin_study_buddy
+author: cremiracle
+repo: https://github.com/cremiracle/astrbot_plugin_study_buddy
 pages:
   - id: study_stats
     title: 学习统计
