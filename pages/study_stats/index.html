@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习统计</title>
+    <style>
+        /* ------------------------------ */
+        /* 全局样式重置 */
+        /* ------------------------------ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ------------------------------ */
+        /* 页面基础样式 */
+        /* ------------------------------ */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+
+        /* ------------------------------ */
+        /* 页面标题 */
+        /* ------------------------------ */
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 24px;
+            font-size: 28px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* ------------------------------ */
+        /* 会话选择栏 */
+        /* ------------------------------ */
+        .session-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+        .session-bar label {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .session-bar select {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            outline: none;
+        }
+        .session-bar .mode-tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .mode-isolation { background: #e3f2fd; color: #1565c0; }
+        .mode-shared { background: #fff3e0; color: #e65100; }
+
+        /* ------------------------------ */
+        /* 进行中计时器区域 */
+        /* ------------------------------ */
+        .active-section { margin-bottom: 24px; }
+        .section-title {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .active-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            margin-bottom: 12px;
+        }
+        .active-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .active-mode {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+        .active-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .badge-work { background: #e3f2fd; color: #1565c0; }
+        .badge-break { background: #e8f5e9; color: #2e7d32; }
+        .badge-pending { background: #fff3e0; color: #e65100; }
+        .badge-stopwatch { background: #fce4ec; color: #c2185b; }
+
+        /* ------------------------------ */
+        /* 计时器显示 */
+        /* ------------------------------ */
+        .timer-display {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+        .progress-work { background: linear-gradient(90deg, #2196f3, #1565c0); }
+        .progress-break { background: linear-gradient(90deg, #4caf50, #2e7d32); }
+
+        /* ------------------------------ */
+        /* 计时器信息网格 */
+        /* ------------------------------ */
+        .active-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+        }
+        .info-item { text-align: center; }
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+        .info-unit {
+            font-size: 12px;
+            color: #999;
+            margin-left: 2px;
+        }
+        .umo-text {
+            font-size: 13px !important;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        /* ------------------------------ */
+        /* 空状态提示 */
+        /* ------------------------------ */
+        .no-active {
+            background: rgba(255,255,255,0.15);
+            border: 2px dashed rgba(255,255,255,0.4);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+        }
+        .no-active-icon { font-size: 48px; margin-bottom: 12px; }
+        .no-active-text { font-size: 15px; }
+
+        /* ------------------------------ */
+        /* 统计卡片 */
+        /* ------------------------------ */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-2px); }
+        .card-icon { font-size: 36px; margin-bottom: 8px; }
+        .card-label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .card-value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card-unit {
+            font-size: 14px;
+            color: #888;
+            margin-left: 2px;
+        }
+
+        /* ------------------------------ */
+        /* 图表卡片 */
+        /* ------------------------------ */
+        .chart-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 200px;
+            padding: 0 10px;
+        }
+        .bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 4px;
+        }
+        .bar-value {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .bar {
+            width: 100%;
+            background: linear-gradient(to top, #667eea 0%, #764ba2 100%);
+            border-radius: 6px 6px 0 0;
+            transition: height 0.3s ease;
+            min-height: 4px;
+        }
+        .bar-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* ------------------------------ */
+        /* 空状态与错误提示 */
+        /* ------------------------------ */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面容器 -->
+    <div class="container">
+        <h1>📚 学习统计</h1>
+        <!-- 应用主体区域，由 JavaScript 动态渲染 -->
+        <div id="app">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        /* ------------------------------ */
+        /* 全局状态变量 */
+        /* ------------------------------ */
+        let activeTimers = [];       // 当前运行中的计时器列表
+        let statsData = {};          // 学习统计数据，key 为 umo，value 为统计对象
+        let sessionsList = [];       // 有学习记录的会话列表
+        let sessionIsolation = true; // 当前会话隔离模式
+        let selectedUmo = '';        // 当前选中的会话（用于筛选）
+        let lastServerUpdate = 0;    // 上次从服务器更新数据的时间戳
+
+        /* ------------------------------ */
+        /* 工具函数 */
+        /* ------------------------------ */
+
+        /**
+         * 格式化时长显示，自动选择合适的单位
+         * @param {number} totalSeconds - 总秒数
+         * @returns {object} - 包含 val（数值）和 unit（单位）的对象
+         */
+        function formatDuration(totalSeconds) {
+            if (totalSeconds < 60) return { val: totalSeconds, unit: '秒' };
+            const minutes = Math.floor(totalSeconds / 60);
+            if (minutes < 60) return { val: minutes, unit: '分钟' };
+            const hours = (minutes / 60).toFixed(1);
+            return { val: hours, unit: '小时' };
+        }
+
+        /**
+         * 格式化时间显示为 HH:MM:SS 或 MM:SS
+         * @param {number} seconds - 总秒数
+         * @returns {string} - 格式化后的时间字符串
+         */
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) {
+                return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        /* ------------------------------ */
+        /* 渲染函数 */
+        /* ------------------------------ */
+
+        /**
+         * 渲染会话选择栏
+         * 包含会话下拉选择框和当前模式标签
+         * @returns {string} - HTML 字符串
+         */
+        function renderSessionBar() {
+            const modeText = sessionIsolation ? '会话隔离' : '共享模式';
+            const modeClass = sessionIsolation ? 'mode-isolation' : 'mode-shared';
+            let options = '<option value="">全部会话</option>';
+            for (const umo of sessionsList) {
+                const selected = selectedUmo === umo ? ' selected' : '';
+                options += `<option value="${umo}"${selected}>${umo}</option>`;
+            }
+            return `
+                <div class="session-bar">
+                    <label>📋 会话</label>
+                    <select id="session-select" onchange="onSessionChange(this.value)">
+                        ${options}
+                    </select>
+                    <span class="mode-tag ${modeClass}">${modeText}</span>
+                </div>
+            `;
+        }
+
+        /**
+         * 渲染进行中的计时器列表
+         * 根据选中的会话筛选，显示正计时和番茄钟两种模式的计时器
+         * @returns {string} - HTML 字符串
+         */
+        function renderActiveTimers() {
+            let timers = activeTimers;
+            // 如果选中了特定会话，则筛选该会话的计时器
+            if (selectedUmo) {
+                timers = timers.filter(t => t.umo === selectedUmo);
+            }
+
+            // 无进行中计时器时显示空状态
+            if (!timers || timers.length === 0) {
+                return `
+                    <div class="active-section">
+                        <div class="section-title">⏱️ 进行中</div>
+                        <div class="no-active">
+                            <div class="no-active-icon">😴</div>
+                            <div class="no-active-text">当前没有进行中的番茄钟<br>对 AI 说"开始番茄钟"来启动吧</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const now = Date.now() / 1000;
+
+            // 遍历计时器，生成对应的卡片 HTML
+            const cards = timers.map(timer => {
+                // 正计时模式
+                if (timer.mode === 'stopwatch') {
+                    const elapsed = Math.floor(now - timer.start_time);
+                    return `
+                        <div class="active-card">
+                            <div class="active-header">
+                                <div class="active-mode">正计时</div>
+                                <span class="active-badge badge-stopwatch">运行中</span>
+                            </div>
+                            <div class="timer-display">${formatTime(elapsed)}</div>
+                            <div class="active-info">
+                                <div class="info-item">
+                                    <div class="info-label">已运行</div>
+                                    <div class="info-value">${Math.floor(elapsed / 60)}<span class="info-unit">分钟</span></div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">创建者</div>
+                                    <div class="info-value umo-text">${timer.umo || '-'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // 番茄钟模式，显示轮次、阶段、进度等详细信息
+                    const phaseText = { work: '学习中', break: '休息中', pending: '即将开始' }[timer.phase] || timer.phase;
+                    const badgeClass = { work: 'badge-work', break: 'badge-break', pending: 'badge-pending' }[timer.phase] || 'badge-pending';
+                    const progressClass = { work: 'progress-work', break: 'progress-break', pending: 'progress-work' }[timer.phase] || 'progress-work';
+
+                    let phaseElapsed, phaseRemain, totalPhaseSeconds;
+                    if (timer.phase === 'break') {
+                        totalPhaseSeconds = timer.break_minutes * 60;
+                        phaseElapsed = Math.floor(now - (timer.phase_start || timer.start_time));
+                        phaseRemain = Math.max(0, totalPhaseSeconds - phaseElapsed);
+                    } else {
+                        totalPhaseSeconds = timer.work_minutes * 60;
+                        phaseElapsed = Math.floor(now - (timer.phase_start || timer.start_time));
+                        phaseRemain = Math.max(0, totalPhaseSeconds - phaseElapsed);
+                    }
+
+                    const progress = totalPhaseSeconds > 0 ? Math.min(100, (phaseElapsed / totalPhaseSeconds) * 100) : 0;
+
+                    return `
+                        <div class="active-card">
+                            <div class="active-header">
+                                <div class="active-mode">🍅 番茄钟</div>
+                                <span class="active-badge ${badgeClass}">${phaseText}</span>
+                            </div>
+                            <div class="timer-display">${formatTime(phaseRemain)}</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${progressClass}" style="width: ${progress}%"></div>
+                            </div>
+                            <div class="active-info">
+                                <div class="info-item">
+                                    <div class="info-label">当前轮次</div>
+                                    <div class="info-value">${timer.current_cycle || 0}<span class="info-unit">/${timer.cycles}</span></div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">阶段进度</div>
+                                    <div class="info-value">${Math.floor(progress)}<span class="info-unit">%</span></div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">学习时长</div>
+                                    <div class="info-value">${timer.work_minutes}<span class="info-unit">分钟</span></div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">休息时长</div>
+                                    <div class="info-value">${timer.break_minutes}<span class="info-unit">分钟</span></div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">创建者</div>
+                                    <div class="info-value umo-text">${timer.umo || '-'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            return `
+                <div class="active-section">
+                    <div class="section-title">⏱️ 进行中 (${timers.length})</div>
+                    ${cards}
+                </div>
+            `;
+        }
+
+        /**
+         * 渲染学习统计数据
+         * 包含今日/本周/总计三张统计卡片和近7日柱状图
+         * @param {object} stats - 统计数据对象
+         * @returns {string} - HTML 字符串
+         */
+        function renderStats(stats) {
+            const total = formatDuration(stats.total_seconds);
+            const today = formatDuration(stats.today_seconds);
+            const week = formatDuration(stats.week_seconds);
+
+            // 按日期排序近7日数据
+            const dailyEntries = Object.entries(stats.daily || {}).sort((a, b) => a[0].localeCompare(b[0]));
+            const maxVal = Math.max(...dailyEntries.map(e => e[1]), 1);
+
+            let chartHtml = '';
+            if (dailyEntries.length === 0) {
+                chartHtml = '<div class="empty-state">暂无近七日学习数据</div>';
+            } else {
+                // 生成柱状图 HTML
+                const bars = dailyEntries.map(([date, seconds]) => {
+                    const h = (seconds / 3600).toFixed(1);
+                    const pct = (seconds / maxVal) * 100;
+                    const shortDate = date.slice(5); // 只显示 MM-DD
+                    return `
+                        <div class="bar-wrapper">
+                            <div class="bar-value">${h}h</div>
+                            <div class="bar" style="height: ${Math.max(pct, 2)}%"></div>
+                            <div class="bar-label">${shortDate}</div>
+                        </div>
+                    `;
+                }).join('');
+                chartHtml = `<div class="chart-container">${bars}</div>`;
+            }
+
+            // 添加会话范围标签
+            const scopeLabel = selectedUmo ? ` (${selectedUmo})` : ' (全部)';
+
+            return `
+                <div class="cards">
+                    <div class="card">
+                        <div class="card-icon">⏱️</div>
+                        <div class="card-label">今日学习${scopeLabel}</div>
+                        <div class="card-value">${today.val}<span class="card-unit">${today.unit}</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">📅</div>
+                        <div class="card-label">近七天学习${scopeLabel}</div>
+                        <div class="card-value">${week.val}<span class="card-unit">${week.unit}</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">🏆</div>
+                        <div class="card-label">总学习时间${scopeLabel}</div>
+                        <div class="card-value">${total.val}<span class="card-unit">${total.unit}</span></div>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">📊 近七天学习时长趋势${scopeLabel}</div>
+                    ${chartHtml}
+                </div>
+            `;
+        }
+
+        /**
+         * 重新渲染整个页面
+         * 依次调用各部分渲染函数，组合后更新 DOM
+         */
+        function renderAll() {
+            const appEl = document.getElementById('app');
+            // 获取当前选中会话的统计数据，若无则使用全部数据
+            const stats = selectedUmo ? statsData[selectedUmo] || statsData[''] || {} : statsData[''] || {};
+            appEl.innerHTML = renderSessionBar() + renderActiveTimers() + renderStats(stats);
+        }
+
+        /**
+         * 会话选择变更处理
+         * @param {string} umo - 选中的会话标识
+         */
+        function onSessionChange(umo) {
+            selectedUmo = umo;
+            renderAll();
+        }
+
+        /* ------------------------------ */
+        /* 数据获取函数 */
+        /* ------------------------------ */
+
+        /**
+         * 获取当前运行中的计时器和会话列表
+         * 通过 AstrBot 插件页面桥接 API 异步获取
+         */
+        async function fetchActiveAndSessions() {
+            try {
+                const bridge = window.AstrBotPluginPage;
+                await bridge.ready();
+                const [activeData, sessionsData] = await Promise.all([
+                    bridge.apiGet('api/study_buddy/active', {}),
+                    bridge.apiGet('api/study_buddy/sessions', {}),
+                ]);
+                activeTimers = activeData.active || [];
+                sessionIsolation = activeData.session_isolation !== false;
+                sessionsList = sessionsData.sessions || [];
+                lastServerUpdate = Date.now();
+            } catch (e) {
+                console.error('Failed to fetch active timers:', e);
+            }
+        }
+
+        /**
+         * 获取所有会话的学习统计数据
+         * 先获取全部汇总数据，再逐个获取各会话的详细数据
+         */
+        async function fetchStats() {
+            try {
+                const bridge = window.AstrBotPluginPage;
+                await bridge.ready();
+                const stats = await bridge.apiGet('api/study_buddy/stats', {});
+                statsData[''] = stats;
+                // 并行获取每个会话的统计数据
+                for (const umo of sessionsList) {
+                    if (umo) {
+                        statsData[umo] = await bridge.apiGet('api/study_buddy/stats', { umo });
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch stats:', e);
+            }
+        }
+
+        /**
+         * 初始化加载所有数据
+         * 并行获取统计数据、活跃计时器和会话列表，然后渲染页面
+         */
+        async function loadData() {
+            const appEl = document.getElementById('app');
+            const bridge = window.AstrBotPluginPage;
+            try {
+                await bridge.ready();
+                const [statsDataAll, activeData, sessionsData] = await Promise.all([
+                    bridge.apiGet('api/study_buddy/stats', {}),
+                    bridge.apiGet('api/study_buddy/active', {}),
+                    bridge.apiGet('api/study_buddy/sessions', {}),
+                ]);
+                statsData = { '': statsDataAll };
+                activeTimers = activeData.active || [];
+                sessionIsolation = activeData.session_isolation !== false;
+                sessionsList = sessionsData.sessions || [];
+                lastServerUpdate = Date.now();
+                // 初次渲染
+                renderAll();
+                // 异步获取所有会话的详细统计数据并更新
+                fetchStats().then(() => renderAll());
+            } catch (e) {
+                appEl.innerHTML = `<div class="error">加载数据失败: ${e.message}</div>`;
+            }
+        }
+
+        /**
+         * 启动数据刷新循环
+         * - 每秒重新渲染页面（更新计时器显示）
+         * - 每10秒从服务器获取活跃计时器和会话列表
+         * - 每30秒从服务器获取统计数据
+         */
+        function startRefreshLoop() {
+            setInterval(async () => {
+                // 每秒刷新页面显示（不请求服务器）
+                renderAll();
+                const now = Date.now();
+                // 每10秒获取活跃计时器和会话列表
+                if (now - lastServerUpdate > 10000) {
+                    await fetchActiveAndSessions();
+                    // 每30秒获取完整统计数据
+                    if (now - lastServerUpdate > 30000) {
+                        await fetchStats();
+                    }
+                    renderAll();
+                }
+            }, 1000);
+        }
+
+        /**
+         * 等待 AstrBot 页面桥接对象就绪
+         * 通过轮询方式检测 window.AstrBotPluginPage 是否存在
+         * @param {function} callback - 就绪后执行的回调函数
+         * @param {number} maxAttempts - 最大尝试次数，默认100次（约10秒）
+         */
+        function waitForBridge(callback, maxAttempts = 100) {
+            let attempts = 0;
+            const check = () => {
+                if (window.AstrBotPluginPage) {
+                    callback();
+                } else if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(check, 100);
+                } else {
+                    document.getElementById('app').innerHTML = '<div class="error">加载失败，请刷新页面重试</div>';
+                }
+            };
+            check();
+        }
+
+        /* ------------------------------ */
+        /* 页面初始化 */
+        /* ------------------------------ */
+        // 等待桥接对象就绪后，加载数据并启动刷新循环
+        waitForBridge(() => {
+            loadData();
+            startRefreshLoop();
+        });
+    </script>
+</body>
+</html>
