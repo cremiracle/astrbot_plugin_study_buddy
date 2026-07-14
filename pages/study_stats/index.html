@@ -299,10 +299,10 @@
     <!-- 页面容器 -->
     <div class="container">
         <h1>📚 学习统计</h1>
-        <!-- 应用主体区域，由 JavaScript 动态渲染 -->
-        <div id="app">
-            <div class="loading">加载中...</div>
-        </div>
+        <!-- 应用主体区域，拆分为三个独立容器，避免整体重渲染导致下拉框收回 -->
+        <div id="session-bar"><div class="loading">加载中...</div></div>
+        <div id="active-timers"></div>
+        <div id="stats"></div>
     </div>
 
     <script>
@@ -556,22 +556,48 @@
 
         /**
          * 重新渲染整个页面
-         * 依次调用各部分渲染函数，组合后更新 DOM
+         * 分别更新三个独立容器，避免整体 innerHTML 重置导致下拉框收回等问题
          */
         function renderAll() {
-            const appEl = document.getElementById('app');
-            // 获取当前选中会话的统计数据，若无则使用全部数据
+            renderSessionBarOnly();
+            renderActiveOnly();
+            renderStatsOnly();
+        }
+
+        /**
+         * 仅渲染会话选择栏
+         * 注意：频繁重渲染会重置 <select> 的展开状态，仅在数据变化时调用
+         */
+        function renderSessionBarOnly() {
+            document.getElementById('session-bar').innerHTML = renderSessionBar();
+        }
+
+        /**
+         * 仅渲染进行中的计时器区域
+         * 计时器需要每秒更新倒计时显示，可频繁调用
+         */
+        function renderActiveOnly() {
+            document.getElementById('active-timers').innerHTML = renderActiveTimers();
+        }
+
+        /**
+         * 仅渲染统计数据区域
+         * 统计数据变化频率低，无需每秒刷新
+         */
+        function renderStatsOnly() {
             const stats = selectedUmo ? statsData[selectedUmo] || statsData[''] || {} : statsData[''] || {};
-            appEl.innerHTML = renderSessionBar() + renderActiveTimers() + renderStats(stats);
+            document.getElementById('stats').innerHTML = renderStats(stats);
         }
 
         /**
          * 会话选择变更处理
+         * 切换会话后只需更新计时器和统计区域，会话栏本身保持不变（避免下拉框闪烁）
          * @param {string} umo - 选中的会话标识
          */
         function onSessionChange(umo) {
             selectedUmo = umo;
-            renderAll();
+            renderActiveOnly();
+            renderStatsOnly();
         }
 
         /* ------------------------------ */
@@ -625,7 +651,7 @@
          * 并行获取统计数据、活跃计时器和会话列表，然后渲染页面
          */
         async function loadData() {
-            const appEl = document.getElementById('app');
+            const sessionBarEl = document.getElementById('session-bar');
             const bridge = window.AstrBotPluginPage;
             try {
                 await bridge.ready();
@@ -641,23 +667,23 @@
                 lastServerUpdate = Date.now();
                 // 初次渲染
                 renderAll();
-                // 异步获取所有会话的详细统计数据并更新
-                fetchStats().then(() => renderAll());
+                // 异步获取所有会话的详细统计数据后，仅刷新统计区域（避免重置会话栏）
+                fetchStats().then(() => renderStatsOnly());
             } catch (e) {
-                appEl.innerHTML = `<div class="error">加载数据失败: ${e.message}</div>`;
+                sessionBarEl.innerHTML = `<div class="error">加载数据失败: ${e.message}</div>`;
             }
         }
 
         /**
          * 启动数据刷新循环
-         * - 每秒重新渲染页面（更新计时器显示）
-         * - 每10秒从服务器获取活跃计时器和会话列表
+         * - 每秒仅刷新计时器显示（倒计时需要每秒更新），不触碰会话栏避免下拉框收回
+         * - 每10秒从服务器获取活跃计时器和会话列表，此时才更新会话栏
          * - 每30秒从服务器获取统计数据
          */
         function startRefreshLoop() {
             setInterval(async () => {
-                // 每秒刷新页面显示（不请求服务器）
-                renderAll();
+                // 每秒仅刷新计时器区域（倒计时显示），不重渲染会话栏以避免下拉框收回
+                renderActiveOnly();
                 const now = Date.now();
                 // 每10秒获取活跃计时器和会话列表
                 if (now - lastServerUpdate > 10000) {
@@ -665,8 +691,11 @@
                     // 每30秒获取完整统计数据
                     if (now - lastServerUpdate > 30000) {
                         await fetchStats();
+                        renderStatsOnly();
                     }
-                    renderAll();
+                    // 数据更新后再刷新会话栏和统计区域
+                    renderSessionBarOnly();
+                    renderStatsOnly();
                 }
             }, 1000);
         }
